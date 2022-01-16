@@ -1,0 +1,86 @@
+﻿uses "file", "console"
+
+function TBMain()
+
+  string damagedFile, correctFile
+  
+  while not FILE_Exists(damagedFile)
+    print "File name of DAMAGED file: " in 15
+    damagedFile = trim$(Console_ReadLine)
+  wend
+  
+  while not FILE_Exists(correctFile)
+    print "File name of CORRECT file: " in 15
+    correctFile = trim$(Console_ReadLine)
+  wend
+  
+  string fixedFile   = replace$(damagedFile, ".rw2", "-fixed.rw2")
+
+  PrintFileInfo(damagedFile, "Damaged file:", 12)
+
+  PrintFileInfo(correctFile, "Correct file:", 10)
+
+  PrintFileInfo(fixedFile, "File name for fixed file:", 14)
+
+  if FixFile(damagedFile, correctFile, fixedFile) then
+    PrintFileInfo(fixedFile, "Damaged file fixed as:", 14)
+    printl "Please try to open the file to verify the fix was successful." in 15
+  end if
+
+  WaitKey
+
+end function
+
+function PrintFileInfo(fileName as string, title as string, fColor as long)
+  printl title in fColor
+  printl fileName
+  if file_exists(fileName) then
+    printl format$(file_size(fileName), "#,"), " bytes"
+  end if
+  printL
+end function
+
+function FixFile(damagedFile as string, correctFile as string, fixedFile as string)
+
+  if damagedFile = correctFile Then
+    printl "The specified correct and damaged file is the same - typo?" in 12
+    printl
+    
+    exit function
+  end if
+
+  if FILE_Exists(fixedFile) Then
+    printl "The fixed file already exists:" in 12
+    printl fixedFile
+    printl
+    
+    exit function
+  end if
+  
+  if not file_size(damagedFile) < file_size(correctFile) then
+    printl "Unknown corruption type, expected the damaged file to be smaller than correct file" in 12
+    printl
+    
+    exit function
+  end if
+
+  string damagedFileContent = file_load(damagedFile)
+  string correctFileContent = file_load(correctFile)
+
+  string fixablePattern = repeat$(63, chr$(255))
+  long   fixableOffset  = -72
+  
+  if not mid$(damagedFileContent, fixableOffset, len(fixablePattern)) = fixablePattern then
+    printl "Apologies, but the character of corruption is not the expected one - cannot fix"
+    printl
+    
+    exit function
+  end if
+  
+  long   headerLength = len(correctFileContent)-len(damagedFileContent)
+  string header       = left$(correctFileContent, headerLength)
+  
+  file_save(fixedFile, header+damagedFileContent)
+  
+  return FILE_Exists(fixedFile)
+end function
